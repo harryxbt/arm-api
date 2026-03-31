@@ -52,7 +52,9 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['clip_id'], ['clips.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.drop_table('posting_queue_items')
+    bind = op.get_bind()
+    if bind.dialect.has_table(bind, 'posting_queue_items'):
+        op.drop_table('posting_queue_items')
     op.add_column('clip_extractions', sa.Column('cluster_id', sa.String(length=36), nullable=True))
     op.create_index(op.f('ix_clip_extractions_cluster_id'), 'clip_extractions', ['cluster_id'], unique=False)
     # SQLite does not support ALTER TABLE ADD CONSTRAINT; FK is declared in the model but not enforced at DB level.
