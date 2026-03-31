@@ -1,9 +1,13 @@
+import logging
 import os
 import tempfile
+import time
 
 import httpx
 
 from app.storage.base import BaseStorage
+
+logger = logging.getLogger(__name__)
 
 
 class BunnyStorage(BaseStorage):
@@ -23,16 +27,24 @@ class BunnyStorage(BaseStorage):
         self.base_url = f"https://{storage_hostname}/{storage_zone}"
         os.makedirs(local_cache_dir, exist_ok=True)
 
-    def save_file(self, prefix: str, filename: str, data: bytes) -> str:
+    def save_file(self, prefix: str, filename: str, data: bytes, retries: int = 3) -> str:
         key = f"{prefix}/{filename}"
         url = f"{self.base_url}/{key}"
-        resp = httpx.put(
-            url,
-            content=data,
-            headers={"AccessKey": self.api_key},
-            timeout=300.0,
-        )
-        resp.raise_for_status()
+        for attempt in range(1, retries + 1):
+            resp = httpx.put(
+                url,
+                content=data,
+                headers={"AccessKey": self.api_key},
+                timeout=300.0,
+            )
+            if resp.status_code in (200, 201):
+                return key
+            if attempt < retries:
+                logger.warning("Bunny upload attempt %d/%d failed (%s %s), retrying...",
+                               attempt, retries, resp.status_code, resp.reason_phrase)
+                time.sleep(2 * attempt)
+            else:
+                resp.raise_for_status()
         return key
 
     def get_file(self, key: str) -> str:

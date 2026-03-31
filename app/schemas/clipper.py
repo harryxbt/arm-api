@@ -39,6 +39,10 @@ class ClipperListResponse(BaseModel):
     clippers: list[ClipperSummaryResponse]
 
 
+class ResetClipperPasswordRequest(BaseModel):
+    password: str
+
+
 class LinkAccountRequest(BaseModel):
     account_id: str
 

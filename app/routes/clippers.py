@@ -17,6 +17,7 @@ from app.schemas.clipper import (
     CreateAssignmentRequest,
     CreateClipperRequest,
     LinkAccountRequest,
+    ResetClipperPasswordRequest,
 )
 from app.services.auth import hash_password
 from app.storage import storage
@@ -103,6 +104,21 @@ def get_clipper(
         is_active=clipper.is_active, accounts=accounts,
         created_at=clipper.created_at.isoformat(),
     )
+
+
+@router.put("/{clipper_id}/reset-password", status_code=status.HTTP_200_OK)
+def reset_clipper_password(
+    clipper_id: str,
+    body: ResetClipperPasswordRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    clipper = db.query(Clipper).filter(Clipper.id == clipper_id).first()
+    if not clipper:
+        raise HTTPException(status_code=404, detail="Clipper not found")
+    clipper.password_hash = hash_password(body.password)
+    db.commit()
+    return {"status": "password_reset", "clipper_id": clipper_id}
 
 
 @router.delete("/{clipper_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -36,6 +36,9 @@ A strong hook is SHORT (under 15 words ideally) and does ONE of these:
 - Starts mid-story with high stakes ("I was about to get fired when...")
 - Reveals a secret or insider knowledge ("The algorithm actually works like this.")
 - Uses pattern interrupt — says something unexpected ("I hope this video gets zero views.")
+- Says something controversial or polarizing ("This is why most relationships fail." / "Nobody wants to hear this but...")
+- Challenges mainstream beliefs or sacred cows ("College is the biggest scam of our generation.")
+- Takes a hard stance that splits the audience ("If you disagree with this, you're part of the problem.")
 
 The first sentence must NEVER be:
 - Generic intro ("Hey guys, welcome back to my channel")
@@ -55,6 +58,22 @@ HOOK SCORING GUIDE (for the virality_score):
 - Below 50: Do NOT include the clip. Find a better starting point or skip it.
 
 You should be finding 5-15 clips in most videos. If you're finding fewer than 5, you're being too picky — look for more entry points. Scan the ENTIRE transcript for hookable moments, not just obvious topic transitions.
+
+== CONTROVERSY & POLARIZATION ==
+
+Controversial content drives engagement harder than almost anything else. Actively seek out moments where the speaker:
+- Takes a strong, divisive opinion that will split the comments section
+- Says something most people think but won't say out loud
+- Challenges a popular belief, norm, or institution
+- Makes a claim that will trigger debate ("hot takes")
+- Tells an uncomfortable truth or exposes hypocrisy
+- Goes against the grain of their own audience
+
+Also look for moments that touch on sensitive social topics — race, gender, religion, politics, class, dating dynamics, generational differences, cultural clashes. These are engagement magnets because EVERYONE has an opinion. Clips where someone says something that could be called sexist, racist, elitist, or just brutally honest about society will rack up comments, shares, stitches, and duets.
+
+These moments are GOLD for virality. People share controversial clips to argue about them, agree loudly, or tag friends. A clip that makes 50% of viewers angry and 50% say "FINALLY someone said it" will outperform a clip everyone mildly agrees with.
+
+When you find a controversial moment, prioritize it — even if the hook isn't perfect, the content controversy itself IS the hook. Bump virality_score +10-15 points for genuinely polarizing content. Clips touching race, gender, or social taboos get an additional +5-10.
 
 == THE ENDING ==
 
@@ -80,7 +99,7 @@ Score 1-100 on virality, weighted:
 - Shareability (20%): Would someone send this to a friend or comment "THIS"?
 - Completeness (15%): Does the clip feel like a whole thought, not a fragment?
 
-Return JSON: { "clips": [{ "start_segment": int, "end_segment": int, "virality_score": int, "hook_text": "first sentence", "end_text": "last sentence of the clip", "hook_type": "bold_claim|shocking_fact|open_loop|callout|mid_story|insider|pattern_interrupt", "reasoning": "why this clip works — address both hook and ending" }] }
+Return JSON: { "clips": [{ "start_segment": int, "end_segment": int, "virality_score": int, "hook_text": "first sentence", "end_text": "last sentence of the clip", "hook_type": "bold_claim|shocking_fact|open_loop|callout|mid_story|insider|pattern_interrupt|controversial|social_taboo", "reasoning": "why this clip works — address both hook and ending" }] }
 
 Order by virality_score descending. Aim for 5-15 clips. Do NOT include any clip with virality_score below 50."""
 

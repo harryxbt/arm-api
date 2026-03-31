@@ -145,6 +145,11 @@ def _process_extraction_inline(extraction_id: str) -> None:
             if os.path.exists(raw_path) and raw_path != final_path:
                 os.remove(raw_path)
 
+            # Upload clip to storage backend (Bunny/local)
+            with open(final_path, "rb") as clip_file:
+                clip_storage_key = storage.save_file(f"clips/{extraction_id}", f"{clip_id}.mp4", clip_file.read())
+            logger.info("[%s] Clip %d uploaded: %s", extraction_id[:8], i, clip_storage_key)
+
             clip_words = [w["word"] for w in words
                           if w["start"] >= suggestion["start_time"]
                           and w["end"] <= suggestion["end_time"]]
@@ -152,7 +157,7 @@ def _process_extraction_inline(extraction_id: str) -> None:
             clip = Clip(
                 id=clip_id,
                 extraction_id=extraction_id,
-                storage_key=f"clips/{extraction_id}/{clip_id}.mp4",
+                storage_key=clip_storage_key,
                 start_time=suggestion["start_time"],
                 end_time=suggestion["end_time"],
                 duration=duration,
