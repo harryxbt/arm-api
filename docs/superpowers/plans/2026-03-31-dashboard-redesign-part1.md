@@ -1,0 +1,1274 @@
+# Dashboard Redesign Part 1 — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rebuild the Armageddon dashboard with Bloomberg terminal density + amber premium aesthetic. Part 1 covers the foundation (visual system, nav, auth), Overview page, Extract page, and Library page.
+
+**Architecture:** Single self-contained HTML file (`frontend/index.html`) with all CSS and JS inline. No build step. Communicates with the API via `fetch()` calls to the configurable `API_URL`. Each "page" is a `<div>` shown/hidden by tab navigation.
+
+**Tech Stack:** Vanilla HTML/CSS/JS, JetBrains Mono (Google Fonts), Tailwind-free (hand-written CSS)
+
+**Spec:** `docs/superpowers/specs/2026-03-31-dashboard-redesign.md`
+
+---
+
+## File Structure
+
+All changes are to a single file:
+
+- **Replace:** `frontend/index.html` — complete rewrite (current file is 3101 lines, will be rebuilt from scratch)
+- **No changes to:** `frontend/config.js` (already sets `window.ARMAGEDDON_API_URL`)
+- **No changes to:** any backend files in Part 1 (API endpoints already exist)
+
+The file is structured in this order:
+1. `<head>` — meta, fonts, config.js
+2. `<style>` — all CSS (visual system, layout, components, page-specific)
+3. `<body>` — login screen, app shell (nav + page containers)
+4. `<script>` — state, auth, API helpers, page logic (overview, extract, library)
+
+---
+
+### Task 1: HTML Shell + Visual System CSS
+
+**Files:**
+- Replace: `frontend/index.html`
+
+This task creates the empty app shell with all CSS variables, the login screen, the top nav bar, and empty page containers. No JS logic yet — just the skeleton.
+
+- [ ] **Step 1: Write the HTML shell with CSS**
+
+Write the complete file with the visual system, login screen, nav bar, and empty page containers:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARMAGEDDON</title>
+<script src="/config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* === RESET & BASE === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #050508;
+  --panel: #0a0a0e;
+  --panel-border: rgba(212,152,42,0.08);
+  --panel-border-hover: rgba(212,152,42,0.2);
+  --amber: #d4982a;
+  --amber-dim: rgba(212,152,42,0.12);
+  --amber-glow: rgba(212,152,42,0.06);
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
+  --text: #e0e0e0;
+  --text-secondary: #888;
+  --text-muted: #555;
+  --gap: 1px;
+  --radius: 4px;
+  --font: 'JetBrains Mono', monospace;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  min-height: 100vh;
+}
+a { color: var(--amber); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* === LOGIN === */
+.login-screen {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; flex-direction: column; gap: 16px;
+}
+.login-screen h2 {
+  color: var(--amber); font-size: 24px; letter-spacing: 6px;
+  margin-bottom: 20px; font-weight: 800;
+}
+.login-screen input {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  color: var(--text); padding: 12px 16px; width: 320px;
+  font-family: var(--font); font-size: 13px; border-radius: var(--radius);
+  outline: none; transition: border-color 0.2s;
+}
+.login-screen input:focus { border-color: var(--amber); }
+.login-screen .login-btn {
+  background: var(--amber); color: #000; border: none;
+  padding: 12px 32px; font-family: var(--font); font-size: 13px;
+  font-weight: 700; cursor: pointer; border-radius: var(--radius);
+  letter-spacing: 2px; transition: opacity 0.2s;
+}
+.login-screen .login-btn:hover { opacity: 0.85; }
+.login-screen .error { color: var(--red); font-size: 11px; min-height: 16px; }
+
+/* === APP SHELL === */
+.app { display: none; }
+.app.active { display: flex; flex-direction: column; height: 100vh; }
+
+/* === TOP NAV === */
+.top-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 48px; border-bottom: 1px solid var(--panel-border);
+  background: var(--panel); flex-shrink: 0;
+}
+.top-nav .logo {
+  font-size: 13px; font-weight: 800; color: var(--amber);
+  letter-spacing: 4px;
+}
+.top-nav .tabs { display: flex; gap: 0; height: 100%; }
+.top-nav .tab {
+  padding: 0 20px; display: flex; align-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  color: var(--text-muted); cursor: pointer; border: none;
+  background: none; font-family: var(--font); height: 100%;
+  border-bottom: 2px solid transparent; transition: color 0.2s;
+}
+.top-nav .tab:hover { color: var(--text-secondary); }
+.top-nav .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+.top-nav .nav-right {
+  display: flex; align-items: center; gap: 16px;
+  font-size: 11px; color: var(--text-muted);
+}
+.top-nav .nav-right .credits {
+  color: var(--amber); font-weight: 700;
+}
+
+/* === PAGE CONTAINERS === */
+.page { display: none; flex: 1; overflow-y: auto; }
+.page.active { display: flex; flex-direction: column; }
+
+/* === SHARED COMPONENTS === */
+
+/* Stat cards */
+.stat-cards { display: flex; gap: var(--gap); padding: var(--gap); }
+.stat-card {
+  flex: 1; background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: var(--radius); padding: 14px 16px;
+  backdrop-filter: blur(8px);
+}
+.stat-card .stat-label {
+  font-size: 9px; letter-spacing: 2px; color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.stat-card .stat-value {
+  font-size: 22px; font-weight: 700; color: var(--text);
+}
+.stat-card .stat-value.amber { color: var(--amber); }
+.stat-card .stat-context {
+  font-size: 10px; color: var(--text-muted); margin-top: 2px;
+}
+.stat-card .stat-context.positive { color: var(--green); }
+.stat-card .stat-context.negative { color: var(--red); }
+
+/* Panels */
+.panel {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.panel-label {
+  font-size: 9px; letter-spacing: 2px; color: var(--amber);
+  margin-bottom: 10px; font-weight: 700;
+}
+.panel.alert { border-color: rgba(239,68,68,0.15); }
+.panel.alert .panel-label { color: var(--red); }
+
+/* Rows inside panels */
+.panel-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 0; font-size: 11px; cursor: pointer;
+  transition: background 0.1s; margin: 0 -8px; padding: 4px 8px;
+  border-radius: 2px;
+}
+.panel-row:hover { background: rgba(255,255,255,0.02); }
+.panel-row .row-title { color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-row .row-value { color: var(--text); margin-left: 12px; }
+
+/* Status badges */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 2px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+}
+.badge.extracting, .badge.downloading, .badge.transcribing, .badge.analyzing,
+.badge.processing, .badge.pending { background: var(--amber-dim); color: var(--amber); }
+.badge.completed, .badge.done, .badge.posted { background: var(--green-dim); color: var(--green); }
+.badge.failed { background: var(--red-dim); color: var(--red); }
+.badge.queued { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+/* Buttons */
+.btn {
+  background: var(--amber); color: #000; border: none;
+  padding: 8px 20px; font-family: var(--font); font-size: 11px;
+  font-weight: 700; cursor: pointer; border-radius: var(--radius);
+  letter-spacing: 1px; transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.85; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-ghost {
+  background: none; border: 1px solid var(--panel-border);
+  color: var(--text-secondary); padding: 8px 20px;
+  font-family: var(--font); font-size: 11px; cursor: pointer;
+  border-radius: var(--radius); letter-spacing: 1px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
+
+/* Inputs */
+.input {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  color: var(--text); padding: 10px 14px; font-family: var(--font);
+  font-size: 12px; border-radius: var(--radius); outline: none;
+  width: 100%; transition: border-color 0.2s;
+}
+.input:focus { border-color: var(--amber); }
+.input::placeholder { color: var(--text-muted); }
+
+/* Tables */
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left; font-size: 9px; letter-spacing: 2px;
+  color: var(--text-muted); padding: 8px 12px; font-weight: 700;
+  border-bottom: 1px solid var(--panel-border); cursor: pointer;
+}
+.table th:hover { color: var(--amber); }
+.table td {
+  padding: 10px 12px; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.02);
+  color: var(--text-secondary);
+}
+.table tr { transition: background 0.1s; cursor: pointer; }
+.table tr:hover { background: rgba(212,152,42,0.03); }
+
+/* Dots */
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot.green { background: var(--green); }
+.dot.amber { background: var(--amber); }
+.dot.red { background: var(--red); }
+.dot.muted { background: var(--text-muted); }
+
+/* Virality score */
+.virality {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 24px; border-radius: 2px; font-size: 11px;
+  font-weight: 700;
+}
+.virality.high { background: var(--green-dim); color: var(--green); }
+.virality.mid { background: var(--amber-dim); color: var(--amber); }
+.virality.low { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; backdrop-filter: blur(4px);
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 6px; padding: 24px; max-width: 600px; width: 90%;
+  max-height: 80vh; overflow-y: auto;
+}
+.modal h3 { font-size: 14px; color: var(--amber); letter-spacing: 2px; margin-bottom: 16px; }
+
+/* Video player modal */
+.video-modal {
+  max-width: 480px;
+}
+.video-modal video {
+  width: 100%; border-radius: var(--radius);
+}
+
+/* Filter pills */
+.filters { display: flex; gap: 4px; }
+.filter-pill {
+  padding: 6px 14px; font-family: var(--font); font-size: 10px;
+  letter-spacing: 1px; cursor: pointer; background: none;
+  border: 1px solid var(--panel-border); color: var(--text-muted);
+  border-radius: var(--radius); transition: all 0.2s;
+}
+.filter-pill:hover { border-color: var(--amber); color: var(--text-secondary); }
+.filter-pill.active { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(212,152,42,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,152,42,0.3); }
+
+/* === PAGE-SPECIFIC STYLES === */
+
+/* Overview grid */
+.overview-grid {
+  display: grid; grid-template-columns: 3fr 2fr;
+  gap: var(--gap); padding: var(--gap); flex: 1;
+}
+.overview-grid .left { display: flex; flex-direction: column; gap: var(--gap); }
+.overview-grid .right { display: flex; flex-direction: column; gap: var(--gap); }
+
+/* Extract page */
+.extract-container { max-width: 900px; margin: 0 auto; padding: 24px 32px; width: 100%; }
+.extract-input-row { display: flex; gap: 12px; margin-bottom: 20px; }
+.extract-input-row .input { flex: 1; }
+.extract-progress {
+  display: flex; gap: 0; margin-bottom: 24px;
+}
+.extract-stage {
+  flex: 1; padding: 10px; text-align: center; font-size: 9px;
+  letter-spacing: 2px; color: var(--text-muted);
+  background: var(--panel); border: 1px solid var(--panel-border);
+}
+.extract-stage.active { color: var(--amber); border-color: var(--amber); }
+.extract-stage.done { color: var(--green); border-color: rgba(34,197,94,0.2); }
+
+/* Library */
+.library-container { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.library-toolbar { display: flex; gap: 12px; align-items: center; }
+.library-toolbar .input { max-width: 300px; }
+
+/* Library detail */
+.lib-detail { display: flex; gap: var(--gap); flex: 1; padding: var(--gap); }
+.lib-detail .col { display: flex; flex-direction: column; gap: var(--gap); }
+.lib-detail .col-clips { flex: 35; }
+.lib-detail .col-generated { flex: 35; }
+.lib-detail .col-distribution { flex: 30; }
+.lib-detail-header {
+  display: flex; align-items: center; gap: 16px; padding: 12px 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.lib-detail-header h2 { font-size: 14px; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Clip card (in library detail) */
+.clip-card {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: var(--radius); padding: 12px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.clip-card:hover { border-color: var(--panel-border-hover); }
+.clip-card.selected { border-color: var(--amber); }
+.clip-card .clip-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.clip-card .clip-hook { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+.clip-card .clip-meta { font-size: 10px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 12px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <h2>ARMAGEDDON</h2>
+  <input type="email" id="loginEmail" placeholder="Email" onkeydown="if(event.key==='Enter')login()">
+  <input type="password" id="loginPassword" placeholder="Password" onkeydown="if(event.key==='Enter')login()">
+  <button class="login-btn" onclick="login()">LOGIN</button>
+  <div class="error" id="loginError"></div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app" id="app">
+  <nav class="top-nav">
+    <div class="logo">ARMAGEDDON</div>
+    <div class="tabs">
+      <button class="tab active" data-page="overview" onclick="switchPage('overview')">OVERVIEW</button>
+      <button class="tab" data-page="extract" onclick="switchPage('extract')">EXTRACT</button>
+      <button class="tab" data-page="library" onclick="switchPage('library')">LIBRARY</button>
+      <button class="tab" data-page="clusters" onclick="switchPage('clusters')">CLUSTERS</button>
+      <button class="tab" data-page="clippers" onclick="switchPage('clippers')">CLIPPERS</button>
+    </div>
+    <div class="nav-right">
+      <span><span class="credits" id="creditsCount">0</span> credits</span>
+    </div>
+  </nav>
+
+  <!-- OVERVIEW PAGE -->
+  <div class="page active" id="pageOverview">
+    <div class="stat-cards" id="overviewStats"></div>
+    <div class="overview-grid">
+      <div class="left">
+        <div class="panel" id="panelPipeline">
+          <div class="panel-label">LIVE PIPELINE</div>
+          <div id="pipelineRows"></div>
+        </div>
+        <div class="panel" id="panelTopClips">
+          <div class="panel-label">TOP PERFORMING — 7D</div>
+          <div id="topClipsRows"></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel" id="panelPerformance">
+          <div class="panel-label">PERFORMANCE</div>
+          <div id="performanceRows"></div>
+        </div>
+        <div class="panel" id="panelClippers">
+          <div class="panel-label">CLIPPER ACTIVITY</div>
+          <div id="clipperActivityRows"></div>
+        </div>
+        <div class="panel alert" id="panelAttention">
+          <div class="panel-label">NEEDS ATTENTION</div>
+          <div id="attentionRows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXTRACT PAGE -->
+  <div class="page" id="pageExtract">
+    <div class="extract-container">
+      <div class="extract-input-row">
+        <input class="input" id="extractUrl" placeholder="Paste YouTube or Instagram URL">
+        <button class="btn" id="extractBtn" onclick="startExtraction()">EXTRACT</button>
+      </div>
+      <div id="extractUpload" style="margin-bottom:20px;">
+        <label class="btn-ghost" style="display:inline-block;cursor:pointer;">
+          UPLOAD FILE <input type="file" id="extractFile" accept="video/*" style="display:none;" onchange="startFileImport()">
+        </label>
+        <span id="extractFileName" style="margin-left:12px;color:var(--text-muted);font-size:11px;"></span>
+      </div>
+      <div class="extract-progress" id="extractProgress" style="display:none;">
+        <div class="extract-stage" data-stage="downloading">DOWNLOADING</div>
+        <div class="extract-stage" data-stage="transcribing">TRANSCRIBING</div>
+        <div class="extract-stage" data-stage="analyzing">ANALYZING</div>
+        <div class="extract-stage" data-stage="extracting">EXTRACTING</div>
+      </div>
+      <div id="extractResults"></div>
+    </div>
+  </div>
+
+  <!-- LIBRARY PAGE -->
+  <div class="page" id="pageLibrary">
+    <!-- List view -->
+    <div class="library-container" id="libraryListView">
+      <div class="library-toolbar">
+        <input class="input" id="librarySearch" placeholder="Search extractions..." oninput="filterLibrary()">
+        <div class="filters" id="libraryFilters">
+          <button class="filter-pill active" data-filter="all" onclick="setLibraryFilter('all')">ALL</button>
+          <button class="filter-pill" data-filter="processing" onclick="setLibraryFilter('processing')">PROCESSING</button>
+          <button class="filter-pill" data-filter="completed" onclick="setLibraryFilter('completed')">READY</button>
+          <button class="filter-pill" data-filter="posted" onclick="setLibraryFilter('posted')">POSTED</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table" id="libraryTable">
+          <thead>
+            <tr>
+              <th onclick="sortLibrary('title')">TITLE</th>
+              <th onclick="sortLibrary('source')" style="width:60px;">SRC</th>
+              <th onclick="sortLibrary('clips')" style="width:60px;">CLIPS</th>
+              <th onclick="sortLibrary('generated')" style="width:80px;">GENERATED</th>
+              <th onclick="sortLibrary('status')" style="width:100px;">STATUS</th>
+              <th onclick="sortLibrary('date')" style="width:100px;">DATE</th>
+            </tr>
+          </thead>
+          <tbody id="libraryBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Detail view -->
+    <div id="libraryDetailView" style="display:none;flex:1;display:none;flex-direction:column;">
+      <div class="lib-detail-header">
+        <button class="btn-ghost" onclick="closeLibraryDetail()" style="padding:6px 12px;">&larr; LIBRARY</button>
+        <h2 id="libDetailTitle"></h2>
+        <span id="libDetailStatus"></span>
+        <a href="#" id="libDetailUrl" target="_blank" style="font-size:10px;"></a>
+      </div>
+      <div class="lib-detail">
+        <div class="col col-clips">
+          <div class="panel" style="flex:1;overflow-y:auto;">
+            <div class="panel-label">CLIPS</div>
+            <div id="libClips" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+        <div class="col col-generated">
+          <div class="panel" style="overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div class="panel-label" style="margin-bottom:0;">GENERATED VIDEOS</div>
+              <button class="btn" onclick="openGenerateModal()" style="padding:4px 12px;font-size:10px;">GENERATE</button>
+            </div>
+            <div id="libJobs"></div>
+          </div>
+        </div>
+        <div class="col col-distribution">
+          <div class="panel" style="flex:1;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div class="panel-label" style="margin-bottom:0;">DISTRIBUTION</div>
+              <button class="btn-ghost" onclick="openAssignModal()" style="padding:4px 12px;font-size:10px;">ASSIGN</button>
+            </div>
+            <div id="libDistribution"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLUSTERS PAGE (Part 2) -->
+  <div class="page" id="pageClusters">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">CLUSTERS — Coming in Part 2</div>
+  </div>
+
+  <!-- CLIPPERS PAGE (Part 2) -->
+  <div class="page" id="pageClippers">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">CLIPPERS — Coming in Part 2</div>
+  </div>
+
+  <!-- VIDEO PREVIEW MODAL -->
+  <div class="modal-overlay" id="videoModal" style="display:none;" onclick="if(event.target===this)closeVideoModal()">
+    <div class="modal video-modal">
+      <video id="videoPlayer" controls></video>
+    </div>
+  </div>
+
+  <!-- GENERATE MODAL -->
+  <div class="modal-overlay" id="generateModal" style="display:none;" onclick="if(event.target===this)closeGenerateModal()">
+    <div class="modal">
+      <h3>GENERATE SPLITSCREENS</h3>
+      <div id="generateGameplaySelect"></div>
+      <div style="margin-top:16px;">
+        <div class="panel-label">CAPTION STYLE</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <div>
+            <label style="font-size:9px;color:var(--text-muted);letter-spacing:1px;">FONT</label>
+            <select class="input" id="genFont" style="margin-top:4px;">
+              <option value="bangers">Bangers</option>
+              <option value="anton">Anton</option>
+              <option value="bebas">Bebas Neue</option>
+              <option value="poppins">Poppins</option>
+              <option value="impact">Impact</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--text-muted);letter-spacing:1px;">FONT SIZE</label>
+            <input class="input" id="genFontSize" type="number" value="130" min="40" max="200" step="10" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--text-muted);letter-spacing:1px;">WORDS PER LINE</label>
+            <input class="input" id="genWords" type="number" value="3" min="1" max="6" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--text-muted);letter-spacing:1px;">POSITION</label>
+            <select class="input" id="genPosition" style="margin-top:4px;">
+              <option value="top">Top</option>
+              <option value="center" selected>Center</option>
+              <option value="bottom">Bottom</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--text-muted);letter-spacing:1px;">TEXT COLOR</label>
+            <input class="input" id="genColor" value="FFFFFF" maxlength="6" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--text-muted);letter-spacing:1px;">OUTLINE COLOR</label>
+            <input class="input" id="genOutline" value="000000" maxlength="6" style="margin-top:4px;">
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-ghost" onclick="closeGenerateModal()">CANCEL</button>
+        <button class="btn" id="genSubmitBtn" onclick="submitGenerate()">GENERATE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// === STATE ===
+const API_URL = window.ARMAGEDDON_API_URL || '';
+let token = null;
+let gameplayList = [];
+let libraryData = [];
+let libraryFilter = 'all';
+let librarySort = { col: 'date', dir: 'desc' };
+let currentExtraction = null;
+let selectedClipKeys = new Set();
+let selectedGameplayIds = new Set();
+let extractionPollTimer = null;
+let overviewPollTimer = null;
+
+// === AUTH ===
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+  try {
+    const resp = await fetch(API_URL + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      token = data.access_token;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').classList.add('active');
+      initApp();
+    } else {
+      errorEl.textContent = data.detail || 'Login failed';
+    }
+  } catch (e) {
+    errorEl.textContent = 'Connection error';
+  }
+}
+
+// === API HELPER ===
+async function api(path, opts = {}) {
+  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  return fetch(API_URL + path, { ...opts, headers });
+}
+
+async function apiUpload(path, formData) {
+  return fetch(API_URL + path, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  });
+}
+
+// === INIT ===
+function initApp() {
+  loadCredits();
+  loadGameplay();
+  loadOverview();
+  loadLibrary();
+}
+
+async function loadCredits() {
+  try {
+    const resp = await api('/auth/me');
+    const data = await resp.json();
+    document.getElementById('creditsCount').textContent = data.credits_remaining;
+  } catch (e) {}
+}
+
+async function loadGameplay() {
+  try {
+    const resp = await api('/gameplay');
+    gameplayList = await resp.json();
+  } catch (e) {}
+}
+
+// === NAV ===
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+  document.querySelector(`.tab[data-page="${page}"]`).classList.add('active');
+
+  if (page === 'overview') loadOverview();
+  if (page === 'library') loadLibrary();
+}
+
+// === HELPERS ===
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+function sourceIcon(type) {
+  if (type === 'youtube') return '<span style="color:#f00;">YT</span>';
+  if (type === 'instagram') return '<span style="color:#e1306c;">IG</span>';
+  return '<span style="color:var(--text-muted);">UP</span>';
+}
+
+function viralityClass(score) {
+  if (score >= 90) return 'high';
+  if (score >= 70) return 'mid';
+  return 'low';
+}
+
+function statusBadge(status) {
+  return `<span class="badge ${status}">${status.toUpperCase()}</span>`;
+}
+
+function previewVideo(url) {
+  const modal = document.getElementById('videoModal');
+  const player = document.getElementById('videoPlayer');
+  player.src = url;
+  modal.style.display = 'flex';
+}
+
+function closeVideoModal() {
+  const modal = document.getElementById('videoModal');
+  const player = document.getElementById('videoPlayer');
+  player.pause();
+  player.src = '';
+  modal.style.display = 'none';
+}
+
+// === OVERVIEW ===
+async function loadOverview() {
+  clearInterval(overviewPollTimer);
+  try {
+    const [jobsResp, clipsResp, clippersResp] = await Promise.all([
+      api('/jobs?limit=100'),
+      api('/clips?limit=20'),
+      api('/clippers'),
+    ]);
+    const jobsData = await jobsResp.json();
+    const clipsData = await clipsResp.json();
+    const clippersData = await clippersResp.json();
+
+    const jobs = jobsData.jobs || [];
+    const extractions = clipsData.extractions || [];
+    const clippers = clippersData.clippers || [];
+
+    const processing = jobs.filter(j => j.status === 'processing' || j.status === 'pending').length;
+    const completed = jobs.filter(j => j.status === 'completed').length;
+    const failed = jobs.filter(j => j.status === 'failed').length;
+    const activeClippers = clippers.filter(c => c.is_active).length;
+
+    // Stat cards
+    document.getElementById('overviewStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">PIPELINE</div>
+        <div class="stat-value amber">${processing}</div>
+        <div class="stat-context">${processing} processing, ${jobs.length} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">COMPLETED</div>
+        <div class="stat-value">${completed}</div>
+        <div class="stat-context">${failed > 0 ? `<span class="stat-context negative">${failed} failed</span>` : 'no failures'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">EXTRACTIONS</div>
+        <div class="stat-value">${extractions.length}</div>
+        <div class="stat-context">total in library</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">CLIPPERS</div>
+        <div class="stat-value">${activeClippers}</div>
+        <div class="stat-context">${clippers.length} total</div>
+      </div>
+    `;
+
+    // Pipeline panel
+    const pipelineItems = [
+      ...extractions.filter(e => e.status !== 'completed' && e.status !== 'failed').map(e => ({
+        title: e.video_title || e.youtube_url || e.id,
+        status: e.status,
+        id: e.id,
+        type: 'extraction'
+      })),
+      ...jobs.filter(j => j.status !== 'completed').slice(0, 10).map(j => ({
+        title: j.source_video_key.split('/').pop(),
+        status: j.status,
+        id: j.id,
+        type: 'job'
+      }))
+    ];
+
+    document.getElementById('pipelineRows').innerHTML = pipelineItems.length > 0
+      ? pipelineItems.map(item => `
+        <div class="panel-row" onclick="${item.type === 'extraction' ? `openLibraryDetail('${item.id}')` : ''}">
+          <span class="row-title">${item.title}</span>
+          ${statusBadge(item.status)}
+        </div>
+      `).join('')
+      : '<div style="color:var(--text-muted);font-size:11px;padding:8px 0;">No active pipeline items</div>';
+
+    // Top clips panel (show recent completed extractions with clips)
+    const completedExtractions = extractions.filter(e => e.status === 'completed' && e.clip_count > 0);
+    document.getElementById('topClipsRows').innerHTML = completedExtractions.length > 0
+      ? completedExtractions.slice(0, 8).map(e => `
+        <div class="panel-row" onclick="openLibraryDetail('${e.id}')">
+          <span class="row-title">${e.video_title || e.youtube_url}</span>
+          <span class="row-value">${e.clip_count} clips</span>
+        </div>
+      `).join('')
+      : '<div style="color:var(--text-muted);font-size:11px;padding:8px 0;">No completed extractions yet</div>';
+
+    // Clipper activity
+    document.getElementById('clipperActivityRows').innerHTML = clippers.length > 0
+      ? clippers.map(c => `
+        <div class="panel-row">
+          <span><span class="dot ${c.is_active ? 'green' : 'red'}"></span>${c.name}</span>
+          <span class="row-value" style="color:var(--text-muted);">${c.account_count} accounts</span>
+        </div>
+      `).join('')
+      : '<div style="color:var(--text-muted);font-size:11px;padding:8px 0;">No clippers configured</div>';
+
+    // Performance (placeholder — needs analytics data)
+    document.getElementById('performanceRows').innerHTML = `
+      <div style="color:var(--text-muted);font-size:11px;padding:8px 0;">Connect analytics to see performance metrics</div>
+    `;
+
+    // Attention
+    const failedJobs = jobs.filter(j => j.status === 'failed');
+    const failedExtractions = extractions.filter(e => e.status === 'failed');
+    const attentionItems = [
+      ...failedJobs.map(j => `<div style="font-size:11px;color:var(--red);padding:2px 0;">Failed job: ${j.source_video_key.split('/').pop()}</div>`),
+      ...failedExtractions.map(e => `<div style="font-size:11px;color:var(--red);padding:2px 0;">Failed extraction: ${e.video_title || e.youtube_url}</div>`),
+    ];
+    document.getElementById('attentionRows').innerHTML = attentionItems.length > 0
+      ? attentionItems.join('')
+      : '<div style="color:var(--text-muted);font-size:11px;padding:8px 0;">All clear</div>';
+
+  } catch (e) {
+    console.error('Failed to load overview', e);
+  }
+
+  overviewPollTimer = setInterval(loadOverview, 10000);
+}
+
+// === EXTRACT ===
+async function startExtraction() {
+  const url = document.getElementById('extractUrl').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true;
+  btn.textContent = 'EXTRACTING...';
+
+  try {
+    const resp = await api('/clips/extract', {
+      method: 'POST',
+      body: JSON.stringify({ youtube_url: url })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert(err.detail || 'Extraction failed');
+      btn.disabled = false;
+      btn.textContent = 'EXTRACT';
+      return;
+    }
+    const data = await resp.json();
+    pollExtraction(data.id);
+  } catch (e) {
+    alert('Connection error');
+    btn.disabled = false;
+    btn.textContent = 'EXTRACT';
+  }
+}
+
+async function startFileImport() {
+  const fileInput = document.getElementById('extractFile');
+  const file = fileInput.files[0];
+  if (!file) return;
+  document.getElementById('extractFileName').textContent = file.name;
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true;
+  btn.textContent = 'IMPORTING...';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const resp = await apiUpload('/clips/import', formData);
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert(err.detail || 'Import failed');
+      btn.disabled = false;
+      btn.textContent = 'EXTRACT';
+      return;
+    }
+    const data = await resp.json();
+    pollExtraction(data.id);
+  } catch (e) {
+    alert('Connection error');
+    btn.disabled = false;
+    btn.textContent = 'EXTRACT';
+  }
+}
+
+function pollExtraction(id) {
+  const progress = document.getElementById('extractProgress');
+  const results = document.getElementById('extractResults');
+  progress.style.display = 'flex';
+  results.innerHTML = '';
+
+  clearInterval(extractionPollTimer);
+  extractionPollTimer = setInterval(async () => {
+    try {
+      const resp = await api(`/clips/${id}`);
+      const data = await resp.json();
+
+      // Update progress stages
+      const stages = ['downloading', 'transcribing', 'analyzing', 'extracting'];
+      const currentIdx = stages.indexOf(data.status);
+      document.querySelectorAll('.extract-stage').forEach((el, i) => {
+        el.classList.remove('active', 'done');
+        if (i < currentIdx) el.classList.add('done');
+        if (i === currentIdx) el.classList.add('active');
+      });
+
+      if (data.status === 'completed') {
+        clearInterval(extractionPollTimer);
+        document.getElementById('extractBtn').disabled = false;
+        document.getElementById('extractBtn').textContent = 'EXTRACT';
+        document.querySelectorAll('.extract-stage').forEach(el => {
+          el.classList.remove('active');
+          el.classList.add('done');
+        });
+
+        // Show clips
+        const clips = data.clips || [];
+        results.innerHTML = `
+          <div class="panel-label" style="margin-bottom:10px;">${clips.length} CLIPS FOUND</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            ${clips.map(c => `
+              <div class="clip-card">
+                <div class="clip-header">
+                  <span class="virality ${viralityClass(c.virality_score)}">${c.virality_score}</span>
+                  <span style="font-size:10px;color:var(--text-muted);">${Math.round(c.duration)}s</span>
+                  ${c.preview_url ? `<button class="btn-ghost" onclick="event.stopPropagation();previewVideo('${c.preview_url}')" style="padding:2px 8px;font-size:9px;">PLAY</button>` : ''}
+                </div>
+                <div class="clip-hook">${c.hook_text}</div>
+              </div>
+            `).join('')}
+          </div>
+          <button class="btn" onclick="openLibraryDetail('${id}');switchPage('library');">OPEN IN LIBRARY</button>
+        `;
+        loadCredits();
+      } else if (data.status === 'failed') {
+        clearInterval(extractionPollTimer);
+        document.getElementById('extractBtn').disabled = false;
+        document.getElementById('extractBtn').textContent = 'EXTRACT';
+        results.innerHTML = `<div style="color:var(--red);font-size:12px;">Extraction failed: ${data.error_message || 'Unknown error'}</div>`;
+        loadCredits();
+      }
+    } catch (e) {}
+  }, 3000);
+}
+
+// === LIBRARY ===
+async function loadLibrary() {
+  try {
+    const resp = await api('/clips?limit=100');
+    const data = await resp.json();
+    libraryData = data.extractions || [];
+    renderLibraryTable();
+  } catch (e) {
+    console.error('Failed to load library', e);
+  }
+}
+
+function filterLibrary() {
+  renderLibraryTable();
+}
+
+function setLibraryFilter(filter) {
+  libraryFilter = filter;
+  document.querySelectorAll('#libraryFilters .filter-pill').forEach(p => p.classList.remove('active'));
+  document.querySelector(`#libraryFilters .filter-pill[data-filter="${filter}"]`).classList.add('active');
+  renderLibraryTable();
+}
+
+function sortLibrary(col) {
+  if (librarySort.col === col) {
+    librarySort.dir = librarySort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    librarySort = { col, dir: 'desc' };
+  }
+  renderLibraryTable();
+}
+
+function renderLibraryTable() {
+  const search = document.getElementById('librarySearch').value.toLowerCase();
+  let items = [...libraryData];
+
+  // Filter
+  if (libraryFilter !== 'all') {
+    if (libraryFilter === 'processing') {
+      items = items.filter(e => !['completed', 'failed'].includes(e.status));
+    } else if (libraryFilter === 'completed') {
+      items = items.filter(e => e.status === 'completed');
+    }
+  }
+
+  // Search
+  if (search) {
+    items = items.filter(e => (e.video_title || e.youtube_url || '').toLowerCase().includes(search));
+  }
+
+  // Sort
+  items.sort((a, b) => {
+    let va, vb;
+    switch (librarySort.col) {
+      case 'title': va = a.video_title || ''; vb = b.video_title || ''; break;
+      case 'clips': va = a.clip_count || 0; vb = b.clip_count || 0; break;
+      case 'date': va = a.created_at; vb = b.created_at; break;
+      default: va = a.created_at; vb = b.created_at;
+    }
+    if (va < vb) return librarySort.dir === 'asc' ? -1 : 1;
+    if (va > vb) return librarySort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  document.getElementById('libraryBody').innerHTML = items.map(e => `
+    <tr onclick="openLibraryDetail('${e.id}')">
+      <td style="color:var(--text);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.video_title || e.youtube_url || e.id}</td>
+      <td>${sourceIcon(e.source_type)}</td>
+      <td>${e.clip_count || 0}</td>
+      <td>—</td>
+      <td>${statusBadge(e.status)}</td>
+      <td style="color:var(--text-muted);">${formatDate(e.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+async function openLibraryDetail(id) {
+  document.getElementById('libraryListView').style.display = 'none';
+  const detailView = document.getElementById('libraryDetailView');
+  detailView.style.display = 'flex';
+  selectedClipKeys.clear();
+
+  try {
+    const resp = await api(`/clips/${id}`);
+    currentExtraction = await resp.json();
+    renderLibraryDetail();
+    loadLibraryJobs(id);
+  } catch (e) {
+    console.error('Failed to load extraction', e);
+  }
+}
+
+function closeLibraryDetail() {
+  currentExtraction = null;
+  document.getElementById('libraryDetailView').style.display = 'none';
+  document.getElementById('libraryListView').style.display = 'flex';
+  loadLibrary();
+}
+
+function renderLibraryDetail() {
+  const ext = currentExtraction;
+  if (!ext) return;
+
+  document.getElementById('libDetailTitle').textContent = ext.video_title || ext.youtube_url || ext.id;
+  document.getElementById('libDetailStatus').innerHTML = statusBadge(ext.status);
+
+  const urlEl = document.getElementById('libDetailUrl');
+  if (ext.youtube_url && ext.youtube_url.startsWith('http')) {
+    urlEl.href = ext.youtube_url;
+    urlEl.textContent = ext.youtube_url;
+    urlEl.style.display = 'inline';
+  } else {
+    urlEl.style.display = 'none';
+  }
+
+  // Clips
+  const clips = (ext.clips || []).sort((a, b) => b.virality_score - a.virality_score);
+  document.getElementById('libClips').innerHTML = clips.map(c => `
+    <div class="clip-card ${selectedClipKeys.has(c.storage_key) ? 'selected' : ''}" onclick="toggleClipSelect('${c.storage_key}', this)">
+      <div class="clip-header">
+        <span class="virality ${viralityClass(c.virality_score)}">${c.virality_score}</span>
+        <span style="font-size:10px;color:var(--text-muted);">${Math.round(c.duration)}s</span>
+        ${c.preview_url ? `<button class="btn-ghost" onclick="event.stopPropagation();previewVideo('${c.preview_url}')" style="padding:2px 8px;font-size:9px;">PLAY</button>` : ''}
+      </div>
+      <div class="clip-hook">${c.hook_text || c.transcript_text.substring(0, 100)}</div>
+      <div class="clip-meta">
+        <span>${c.start_time ? Math.round(c.start_time) + 's' : ''} - ${c.end_time ? Math.round(c.end_time) + 's' : ''}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Distribution placeholder
+  document.getElementById('libDistribution').innerHTML = '<div style="color:var(--text-muted);font-size:11px;">No assignments yet</div>';
+}
+
+function toggleClipSelect(key, el) {
+  if (selectedClipKeys.has(key)) {
+    selectedClipKeys.delete(key);
+    el.classList.remove('selected');
+  } else {
+    selectedClipKeys.add(key);
+    el.classList.add('selected');
+  }
+}
+
+async function loadLibraryJobs(extractionId) {
+  try {
+    const resp = await api(`/jobs?source_prefix=clips/${extractionId}/&limit=100`);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const jobs = data.jobs || [];
+
+    if (jobs.length === 0) {
+      document.getElementById('libJobs').innerHTML = '<div style="color:var(--text-muted);font-size:11px;">No videos generated yet. Select clips and click GENERATE.</div>';
+      return;
+    }
+
+    document.getElementById('libJobs').innerHTML = jobs.map(j => {
+      const srcName = j.source_video_key.split('/').pop();
+      const gpName = j.gameplay_key.split('/').pop();
+      return `
+        <div class="panel-row">
+          <span class="row-title">${srcName} + ${gpName}</span>
+          ${statusBadge(j.status)}
+          ${j.status === 'completed' && j.output_url ? `
+            <button class="btn-ghost" onclick="event.stopPropagation();previewVideo('${j.output_url}')" style="padding:2px 8px;font-size:9px;">WATCH</button>
+            <a href="${j.output_url}" download class="btn-ghost" style="padding:2px 8px;font-size:9px;text-decoration:none;">DL</a>
+          ` : ''}
+          ${j.status === 'failed' ? `<span style="color:var(--red);font-size:9px;">${(j.error_message||'').substring(0,30)}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Poll if any jobs still processing
+    const hasActive = jobs.some(j => j.status === 'pending' || j.status === 'processing');
+    if (hasActive) {
+      setTimeout(() => loadLibraryJobs(extractionId), 5000);
+    }
+  } catch (e) {}
+}
+
+// === GENERATE MODAL ===
+function openGenerateModal() {
+  if (selectedClipKeys.size === 0) {
+    alert('Select at least one clip first');
+    return;
+  }
+  const modal = document.getElementById('generateModal');
+  selectedGameplayIds.clear();
+
+  document.getElementById('generateGameplaySelect').innerHTML = `
+    <div class="panel-label">SELECT GAMEPLAY</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      ${gameplayList.map(g => `
+        <div class="clip-card" style="padding:8px 12px;" onclick="toggleGameplay('${g.id}', this)">
+          <span style="font-size:11px;color:var(--text-secondary);">${g.name}</span>
+          <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">${Math.round(g.duration)}s</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+}
+
+function closeGenerateModal() {
+  document.getElementById('generateModal').style.display = 'none';
+}
+
+function toggleGameplay(id, el) {
+  if (selectedGameplayIds.has(id)) {
+    selectedGameplayIds.delete(id);
+    el.classList.remove('selected');
+  } else {
+    selectedGameplayIds.add(id);
+    el.classList.add('selected');
+  }
+}
+
+async function submitGenerate() {
+  if (selectedGameplayIds.size === 0) {
+    alert('Select at least one gameplay clip');
+    return;
+  }
+  const btn = document.getElementById('genSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'GENERATING...';
+
+  const captionStyle = {
+    font: document.getElementById('genFont').value,
+    font_size: parseInt(document.getElementById('genFontSize').value),
+    words_per_chunk: parseInt(document.getElementById('genWords').value),
+    position: document.getElementById('genPosition').value,
+    primary_color: document.getElementById('genColor').value,
+    outline_color: document.getElementById('genOutline').value,
+  };
+
+  const gameplayIds = [...selectedGameplayIds];
+
+  for (const clipKey of selectedClipKeys) {
+    try {
+      await api('/jobs/batch', {
+        method: 'POST',
+        body: JSON.stringify({
+          source_video_key: clipKey,
+          gameplay_ids: gameplayIds,
+          caption_style: captionStyle,
+        })
+      });
+    } catch (e) {}
+  }
+
+  // Save last gameplay
+  if (currentExtraction) {
+    try {
+      await api(`/clips/${currentExtraction.id}/last-gameplay`, {
+        method: 'PUT',
+        body: JSON.stringify({ gameplay_ids: gameplayIds })
+      });
+    } catch (e) {}
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'GENERATE';
+  closeGenerateModal();
+  loadCredits();
+
+  // Reload jobs
+  if (currentExtraction) {
+    loadLibraryJobs(currentExtraction.id);
+  }
+}
+
+// === ASSIGN MODAL (placeholder) ===
+function openAssignModal() {
+  alert('Assignment creation coming in Part 2');
+}
+</script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Verify the shell renders correctly**
+
+Open `frontend/index.html` directly in a browser or via the Netlify deploy. Verify:
+- Login screen shows with amber ARMAGEDDON title
+- After login, top nav bar renders with 5 tabs
+- Overview page shows as default with panel structure
+- Clicking tabs switches between pages
+- Clusters/Clippers show placeholder text
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add frontend/index.html
+git commit -m "feat: complete dashboard redesign - overview, extract, library
+
+Bloomberg terminal density + amber premium aesthetic.
+Pages: Overview (command center), Extract (single-flow),
+Library (dense table + 3-column detail view).
+Clusters and Clippers pages stubbed for Part 2."
+```
+
+---
+
+### Task 2: Test on Railway
+
+The dashboard is hosted on Netlify pointing at the Railway API. After committing and pushing, verify the full flow works end-to-end.
+
+- [ ] **Step 1: Push to trigger Netlify deploy**
+
+```bash
+git push origin main
+```
+
+- [ ] **Step 2: Verify login works**
+
+Navigate to the Netlify dashboard URL. Log in with `test@armageddon.io` / `testtest1`. Verify:
+- Login succeeds
+- Top nav shows with credits count
+- Overview page loads with stats
+
+- [ ] **Step 3: Verify Extract flow**
+
+1. Click EXTRACT tab
+2. Paste a YouTube URL
+3. Click EXTRACT
+4. Watch progress stages update
+5. When done, clips should appear with virality scores
+6. Click "Open in Library"
+
+- [ ] **Step 4: Verify Library**
+
+1. Library table should show extractions
+2. Search should filter by title
+3. Filter pills should work
+4. Click an extraction to open detail view
+5. Clips column should show clips with scores
+6. Select clips + click GENERATE to open modal
+7. Select gameplay, submit, verify jobs appear in center column
+
+- [ ] **Step 5: Commit any fixes**
+
+```bash
+git add frontend/index.html
+git commit -m "fix: dashboard tweaks after end-to-end testing"
+```
