@@ -145,7 +145,7 @@ def _dispatch_runpod(job: Job) -> None:
                 "gameplay_key": job.gameplay_key,
                 "caption_style": caption_style,
             },
-            "webhook": f"{settings.frontend_url}/jobs/{job.id}/webhook",
+            "webhook": f"{settings.api_url}/jobs/{job.id}/webhook",
         },
         timeout=30.0,
     )
