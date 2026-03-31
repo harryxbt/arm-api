@@ -2,6 +2,7 @@ import logging
 import os
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,6 +26,13 @@ from app.routes.clippers import router as clippers_router, assignments_router
 from app.routes.clipper_portal import router as clipper_portal_router
 
 app = FastAPI(title="Armageddon API", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(auth_router)
 app.include_router(videos_router)
 app.include_router(gameplay_router)
