@@ -19,7 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('clip_extractions', sa.Column('source_type', sa.Enum('youtube', 'instagram', 'upload', name='sourcetype'), server_default='youtube', nullable=False))
+    sourcetype = sa.Enum('youtube', 'instagram', 'upload', name='sourcetype')
+    sourcetype.create(op.get_bind(), checkfirst=True)
+    op.add_column('clip_extractions', sa.Column('source_type', sourcetype, server_default='youtube', nullable=False))
     op.add_column('clip_extractions', sa.Column('last_gameplay_ids', sa.JSON(), nullable=True))
 
 
