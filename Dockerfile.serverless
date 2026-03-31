@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt runpod
+
+COPY app/services/video_processor.py app/services/video_processor.py
+COPY app/services/__init__.py app/services/__init__.py
+COPY app/__init__.py app/__init__.py
+COPY app/fonts/ app/fonts/
+COPY handler.py .
+
+CMD ["python", "-u", "handler.py"]

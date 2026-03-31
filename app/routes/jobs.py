@@ -126,8 +126,45 @@ def _process_inline_throttled(job_id: str) -> None:
         _process_inline(job_id)
 
 
-def _dispatch_job(job_id: str) -> None:
-    """Dispatch job to Celery if available, otherwise process in background thread."""
+def _dispatch_runpod(job: Job) -> None:
+    """Dispatch job to RunPod serverless endpoint."""
+    from app.config import settings
+    import httpx
+
+    caption_style = None
+    if job.caption_data and isinstance(job.caption_data, dict):
+        caption_style = job.caption_data.get("style")
+
+    resp = httpx.post(
+        f"https://api.runpod.ai/v2/{settings.runpod_endpoint_id}/run",
+        headers={"Authorization": f"Bearer {settings.runpod_api_key}"},
+        json={
+            "input": {
+                "job_id": str(job.id),
+                "source_video_key": job.source_video_key,
+                "gameplay_key": job.gameplay_key,
+                "caption_style": caption_style,
+            },
+            "webhook": f"{settings.frontend_url}/jobs/{job.id}/webhook",
+        },
+        timeout=30.0,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    logger.info("Dispatched job %s to RunPod: %s", str(job.id)[:8], data.get("id"))
+
+
+def _dispatch_job(job_id: str, job: Job | None = None) -> None:
+    """Dispatch job to RunPod serverless, Celery, or inline thread."""
+    from app.config import settings
+
+    if settings.runpod_api_key and settings.runpod_endpoint_id and job:
+        try:
+            _dispatch_runpod(job)
+            return
+        except Exception as e:
+            logger.warning("RunPod dispatch failed for %s (%s), falling back", job_id[:8], e)
+
     if _is_celery_available():
         from app.worker import process_video_task
         process_video_task.delay(job_id)
@@ -185,7 +222,7 @@ def create_job(body: CreateJobRequest, user: User = Depends(get_current_user), d
     db.commit()
     db.refresh(job)
 
-    _dispatch_job(str(job.id))
+    _dispatch_job(str(job.id), job=job)
 
     return _job_to_response(job)
 
@@ -231,7 +268,7 @@ def create_batch_jobs(body: CreateBatchJobRequest, user: User = Depends(get_curr
 
     # Dispatch all jobs
     for job in jobs:
-        _dispatch_job(str(job.id))
+        _dispatch_job(str(job.id), job=job)
 
     return BatchJobResponse(
         jobs=[_job_to_response(j) for j in jobs],
@@ -268,3 +305,30 @@ def list_jobs(
         jobs=[_job_to_response(j) for j in jobs[:limit]],
         next_cursor=next_cursor,
     )
+
+
+@router.post("/{job_id}/webhook")
+def job_webhook(job_id: str, payload: dict, db: Session = Depends(get_db)):
+    """Webhook called by RunPod when a serverless job completes."""
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    rp_status = payload.get("status")
+    output = payload.get("output", {})
+
+    if rp_status == "COMPLETED" and isinstance(output, dict):
+        job.output_video_key = output.get("output_key", "")
+        job.status = JobStatus.completed
+        job.completed_at = datetime.now(timezone.utc)
+        logger.info("[job %s] RunPod completed: %s", job_id[:8], job.output_video_key)
+    elif rp_status in ("FAILED", "TIMED_OUT", "CANCELLED"):
+        job.status = JobStatus.failed
+        job.error_message = str(payload.get("error", rp_status))[:1000]
+        job.completed_at = datetime.now(timezone.utc)
+        from app.services.credits import refund_credit
+        refund_credit(db, job.user_id, job.id, commit=False)
+        logger.warning("[job %s] RunPod %s: %s", job_id[:8], rp_status, job.error_message)
+
+    db.commit()
+    return {"status": "ok"}

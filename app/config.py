@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     bunny_cdn_hostname: str = ""
     bunny_storage_hostname: str = "storage.bunnycdn.com"
     frontend_url: str = "http://localhost:3000"
+    runpod_api_key: str = ""
+    runpod_endpoint_id: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
