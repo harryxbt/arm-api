@@ -115,15 +115,25 @@ def _process_inline(job_id: str) -> None:
         db.close()
 
 
+import threading
+
+_job_semaphore = threading.Semaphore(2)  # max 2 concurrent ffmpeg jobs
+
+
+def _process_inline_throttled(job_id: str) -> None:
+    """Wrapper that acquires semaphore before processing."""
+    with _job_semaphore:
+        _process_inline(job_id)
+
+
 def _dispatch_job(job_id: str) -> None:
     """Dispatch job to Celery if available, otherwise process in background thread."""
     if _is_celery_available():
         from app.worker import process_video_task
         process_video_task.delay(job_id)
     else:
-        import threading
         logger.info("Celery unavailable, processing job %s in background thread", job_id)
-        t = threading.Thread(target=_process_inline, args=(job_id,), daemon=True)
+        t = threading.Thread(target=_process_inline_throttled, args=(job_id,), daemon=True)
         t.start()
 
 
