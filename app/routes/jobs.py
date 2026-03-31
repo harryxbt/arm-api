@@ -251,10 +251,13 @@ def get_job(job_id: str, user: User = Depends(get_current_user), db: Session = D
 def list_jobs(
     cursor: str | None = Query(None),
     limit: int = Query(20, ge=1, le=100),
+    source_prefix: str | None = Query(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     query = db.query(Job).filter(Job.user_id == user.id).order_by(Job.created_at.desc())
+    if source_prefix:
+        query = query.filter(Job.source_video_key.like(f"{source_prefix}%"))
     if cursor:
         cursor_job = db.query(Job).filter(Job.id == cursor).first()
         if cursor_job:

@@ -2279,9 +2279,22 @@ async function openLibraryDetail(id) {
     const resp = await api(`/clips/${id}`);
     libCurrentExtraction = await resp.json();
     renderLibraryDetail();
+    loadLibExistingJobs(id);
   } catch(e) {
     console.error('Failed to load extraction detail', e);
   }
+}
+
+async function loadLibExistingJobs(extractionId) {
+  try {
+    const resp = await api(`/jobs?source_prefix=clips/${extractionId}/&limit=100`);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const jobs = data.jobs || [];
+    if (jobs.length === 0) return;
+    const jobIds = jobs.map(j => j.id);
+    pollLibJobs(jobIds, 'libJobsList');
+  } catch(e) {}
 }
 
 function renderLibraryDetail() {
