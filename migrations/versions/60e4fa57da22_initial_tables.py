@@ -9,7 +9,6 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -22,7 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "users",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("email", sa.String(255), nullable=False, unique=True),
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("stripe_customer_id", sa.String(255), nullable=False, server_default=""),
@@ -37,7 +36,7 @@ def upgrade() -> None:
 
     op.create_table(
         "gameplay_library",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("storage_key", sa.String(500), nullable=False),
         sa.Column("duration_seconds", sa.Float(), nullable=False),
@@ -47,13 +46,13 @@ def upgrade() -> None:
 
     op.create_table(
         "jobs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("status", sa.Enum("pending", "processing", "completed", "failed", name="jobstatus"), nullable=False, server_default="pending"),
         sa.Column("source_video_key", sa.String(500), nullable=False),
         sa.Column("gameplay_key", sa.String(500), nullable=False),
         sa.Column("output_video_key", sa.String(500), nullable=True),
-        sa.Column("caption_data", postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column("caption_data", sa.JSON(), nullable=True),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("credits_charged", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
@@ -63,18 +62,18 @@ def upgrade() -> None:
 
     op.create_table(
         "credit_transactions",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("amount", sa.Integer(), nullable=False),
         sa.Column("type", sa.Enum("purchase", "deduction", "refund", name="transactiontype"), nullable=False),
-        sa.Column("job_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("jobs.id"), nullable=True),
+        sa.Column("job_id", sa.String(36), sa.ForeignKey("jobs.id"), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
 
     op.create_table(
         "refresh_tokens",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("token_hash", sa.String(255), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("revoked", sa.Boolean(), nullable=False, server_default="false"),
