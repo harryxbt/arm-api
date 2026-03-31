@@ -1,0 +1,7 @@
+__pycache__
+*.pyc
+.env
+armageddon.db
+storage/
+notebooks/
+.git
