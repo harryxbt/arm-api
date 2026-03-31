@@ -1,0 +1,141 @@
+<h2>Dashboard Architecture</h2>
+<p class="subtitle">How should the navigation and information hierarchy work?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#050508;padding:20px;border-radius:8px;">
+      <!-- Approach A: Sidebar + Command Center -->
+      <div style="display:flex;height:280px;">
+        <!-- Sidebar -->
+        <div style="width:48px;background:#0a0a0e;border-right:1px solid rgba(212,152,42,0.1);display:flex;flex-direction:column;align-items:center;padding-top:16px;gap:16px;">
+          <div style="width:28px;height:28px;background:rgba(212,152,42,0.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#d4982a;">⌂</div>
+          <div style="width:28px;height:28px;background:rgba(255,255,255,0.03);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#555;">▶</div>
+          <div style="width:28px;height:28px;background:rgba(255,255,255,0.03);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#555;">◎</div>
+          <div style="width:28px;height:28px;background:rgba(255,255,255,0.03);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#555;">⊞</div>
+          <div style="width:28px;height:28px;background:rgba(255,255,255,0.03);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#555;">♟</div>
+        </div>
+        <!-- Main content -->
+        <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="color:#d4982a;font-family:monospace;font-size:10px;letter-spacing:2px;">COMMAND CENTER</div>
+            <div style="color:#555;font-family:monospace;font-size:10px;">12 credits</div>
+          </div>
+          <!-- Stats row -->
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;background:rgba(212,152,42,0.06);border:1px solid rgba(212,152,42,0.08);border-radius:4px;padding:8px;backdrop-filter:blur(8px);">
+              <div style="color:#555;font-size:8px;font-family:monospace;letter-spacing:1px;">PIPELINE</div>
+              <div style="color:#d4982a;font-size:18px;font-family:monospace;font-weight:700;">47</div>
+            </div>
+            <div style="flex:1;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.08);border-radius:4px;padding:8px;">
+              <div style="color:#555;font-size:8px;font-family:monospace;letter-spacing:1px;">VIEWS</div>
+              <div style="color:#22c55e;font-size:18px;font-family:monospace;font-weight:700;">2.4M</div>
+            </div>
+            <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:4px;padding:8px;">
+              <div style="color:#555;font-size:8px;font-family:monospace;letter-spacing:1px;">POSTED</div>
+              <div style="color:#e0e0e0;font-size:18px;font-family:monospace;font-weight:700;">186</div>
+            </div>
+          </div>
+          <!-- Panels -->
+          <div style="display:flex;gap:6px;flex:1;">
+            <div style="flex:1;background:#0a0a0e;border:1px solid rgba(212,152,42,0.06);border-radius:4px;padding:8px;">
+              <div style="color:#d4982a;font-size:8px;font-family:monospace;letter-spacing:1px;margin-bottom:6px;">LIVE PIPELINE</div>
+              <div style="font-family:monospace;font-size:9px;color:#888;line-height:1.8;">
+                <span style="color:#22c55e;">●</span> Spiritual Master...<br>
+                <span style="color:#d4982a;">●</span> Why Relationships...<br>
+                <span style="color:#555;">●</span> Truth About Money...<br>
+                <span style="color:#555;">●</span> Dating in 2026...
+              </div>
+            </div>
+            <div style="flex:1;background:#0a0a0e;border:1px solid rgba(212,152,42,0.06);border-radius:4px;padding:8px;">
+              <div style="color:#d4982a;font-size:8px;font-family:monospace;letter-spacing:1px;margin-bottom:6px;">CLIPPERS</div>
+              <div style="font-family:monospace;font-size:9px;color:#888;line-height:1.8;">
+                <span style="color:#22c55e;">●</span> sarah — 4 today<br>
+                <span style="color:#22c55e;">●</span> mike — 2 today<br>
+                <span style="color:#ef4444;">●</span> james — 0 (3 pending)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A: Icon Sidebar + Pages</h3>
+      <p>Thin icon sidebar (like Discord/Linear). Each icon opens a full page: Home (command center), Extract, Library, Clusters, Clippers. Homepage shows everything at a glance. Deep pages for focused work.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#050508;padding:20px;border-radius:8px;">
+      <!-- Approach B: Single Page Bloomberg -->
+      <div style="height:280px;display:flex;flex-direction:column;gap:1px;">
+        <!-- Top bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0a0a0e;">
+          <div style="color:#d4982a;font-family:monospace;font-size:10px;letter-spacing:3px;">ARMAGEDDON</div>
+          <div style="display:flex;gap:12px;font-family:monospace;font-size:9px;">
+            <span style="color:#d4982a;border-bottom:1px solid #d4982a;padding-bottom:2px;">OVERVIEW</span>
+            <span style="color:#555;">EXTRACT</span>
+            <span style="color:#555;">LIBRARY</span>
+            <span style="color:#555;">CLUSTERS</span>
+            <span style="color:#555;">CLIPPERS</span>
+          </div>
+          <div style="color:#555;font-family:monospace;font-size:9px;">12 cr</div>
+        </div>
+        <!-- Bloomberg grid -->
+        <div style="display:flex;gap:1px;flex:1;">
+          <!-- Left column -->
+          <div style="flex:2;display:flex;flex-direction:column;gap:1px;">
+            <div style="background:#0a0a0e;padding:10px;flex:1;">
+              <div style="color:#d4982a;font-size:8px;font-family:monospace;letter-spacing:2px;margin-bottom:6px;">PIPELINE — 47 ACTIVE</div>
+              <div style="font-family:monospace;font-size:9px;color:#888;line-height:1.6;">
+                Spiritual Master RE... <span style="color:#22c55e;float:right;">DONE 6clips</span><br>
+                Why Relationships... <span style="color:#d4982a;float:right;">EXTRACTING</span><br>
+                Truth About Money... <span style="color:#d4982a;float:right;">COMPOSITING</span><br>
+                Dating in 2026 Is... <span style="color:#555;float:right;">QUEUED</span>
+              </div>
+            </div>
+            <div style="background:#0a0a0e;padding:10px;flex:1;">
+              <div style="color:#d4982a;font-size:8px;font-family:monospace;letter-spacing:2px;margin-bottom:6px;">TOP PERFORMING — 7D</div>
+              <div style="font-family:monospace;font-size:9px;color:#888;line-height:1.6;">
+                <span style="color:#e0e0e0;">847K</span> "Nobody wants to hear..." <span style="color:#22c55e;float:right;">↑</span><br>
+                <span style="color:#e0e0e0;">523K</span> "College is the biggest..." <span style="color:#22c55e;float:right;">↑</span><br>
+                <span style="color:#e0e0e0;">401K</span> "I lost everything at..." <span style="color:#d4982a;float:right;">→</span>
+              </div>
+            </div>
+          </div>
+          <!-- Right column -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:1px;">
+            <div style="background:#0a0a0e;padding:10px;">
+              <div style="color:#d4982a;font-size:8px;font-family:monospace;letter-spacing:2px;margin-bottom:4px;">METRICS</div>
+              <div style="font-family:monospace;font-size:9px;line-height:1.8;">
+                <span style="color:#e0e0e0;">2.4M</span> <span style="color:#555;">views</span> <span style="color:#22c55e;">+18%</span><br>
+                <span style="color:#e0e0e0;">142K</span> <span style="color:#555;">likes</span> <span style="color:#22c55e;">+24%</span><br>
+                <span style="color:#e0e0e0;">8.2K</span> <span style="color:#555;">cmts</span> <span style="color:#d4982a;">+9%</span><br>
+                <span style="color:#e0e0e0;">1.1K</span> <span style="color:#555;">shares</span> <span style="color:#22c55e;">+31%</span>
+              </div>
+            </div>
+            <div style="background:#0a0a0e;padding:10px;flex:1;">
+              <div style="color:#d4982a;font-size:8px;font-family:monospace;letter-spacing:2px;margin-bottom:4px;">CLIPPERS</div>
+              <div style="font-family:monospace;font-size:9px;line-height:1.8;color:#888;">
+                <span style="color:#22c55e;">●</span> sarah <span style="float:right;">4/4</span><br>
+                <span style="color:#22c55e;">●</span> mike <span style="float:right;">2/5</span><br>
+                <span style="color:#ef4444;">●</span> james <span style="float:right;">0/3</span><br>
+                <span style="color:#555;">●</span> alex <span style="float:right;">—</span>
+              </div>
+            </div>
+            <div style="background:#0a0a0e;padding:10px;">
+              <div style="color:#ef4444;font-size:8px;font-family:monospace;letter-spacing:2px;margin-bottom:4px;">ATTENTION</div>
+              <div style="font-family:monospace;font-size:9px;color:#ef4444;line-height:1.6;">
+                3 clips unposted 2d+<br>
+                james: 0 activity
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B: Top Tabs + Bloomberg Grid</h3>
+      <p>Horizontal tabs at top. Overview page is a tiled Bloomberg grid — every panel is a live feed. Extract/Library/Clusters/Clippers are full pages. Maximum info density on the overview, focused workflows on sub-pages.</p>
+    </div>
+  </div>
+</div>

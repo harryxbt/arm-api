@@ -1,0 +1,6 @@
+{"type":"server-started","port":52350,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52350","screen_dir":"/Users/harry/Desktop/life/Project Folders/armageddon/arm-api/.superpowers/brainstorm/51298-1774993707/content","state_dir":"/Users/harry/Desktop/life/Project Folders/armageddon/arm-api/.superpowers/brainstorm/51298-1774993707/state"}
+{"type":"screen-added","file":"/Users/harry/Desktop/life/Project Folders/armageddon/arm-api/.superpowers/brainstorm/51298-1774993707/content/visual-direction.html"}
+{"type":"screen-updated","file":"/Users/harry/Desktop/life/Project Folders/armageddon/arm-api/.superpowers/brainstorm/51298-1774993707/content/visual-direction.html"}
+{"type":"screen-added","file":"/Users/harry/Desktop/life/Project Folders/armageddon/arm-api/.superpowers/brainstorm/51298-1774993707/content/navigation-approach.html"}
+{"type":"screen-added","file":"/Users/harry/Desktop/life/Project Folders/armageddon/arm-api/.superpowers/brainstorm/51298-1774993707/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}
