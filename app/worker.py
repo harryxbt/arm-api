@@ -71,14 +71,14 @@ def process_video_task(self, job_id: str):
                 generate_ass_subtitles(words, ass_path, style=caption_style)
 
             # Step 4: FFmpeg composite
-            output_filename = f"{uuid.uuid4()}.mp4"
+            output_filename = "output.mp4"
             output_path = os.path.join(tmpdir, output_filename)
             composite_splitscreen(source_path, gameplay_path, ass_path, output_path)
 
             # Step 5: Upload output
             with open(output_path, "rb") as f:
                 output_data = f.read()
-            output_key = storage.save_file("outputs", output_filename, output_data)
+            output_key = storage.save_file(f"jobs/{job_id}", output_filename, output_data)
 
             job.output_video_key = output_key
             job.status = JobStatus.completed

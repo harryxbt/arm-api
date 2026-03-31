@@ -82,7 +82,7 @@ def _process_inline(job_id: str) -> None:
                 generate_ass_subtitles(words, ass_path, style=caption_style)
                 logger.info("[job %s] Captions generated: %s", job_id[:8], ass_path)
 
-            output_filename = f"{uuid.uuid4()}.mp4"
+            output_filename = "output.mp4"
             output_path = os.path.join(tmpdir, output_filename)
             logger.info("[job %s] Compositing splitscreen (this may take a while)...", job_id[:8])
             t0 = _time.time()
@@ -91,7 +91,7 @@ def _process_inline(job_id: str) -> None:
 
             with open(output_path, "rb") as f:
                 output_data = f.read()
-            output_key = storage.save_file("outputs", output_filename, output_data)
+            output_key = storage.save_file(f"jobs/{job_id}", output_filename, output_data)
             logger.info("[job %s] Output saved: %s (%.1f MB)", job_id[:8], output_key, len(output_data) / (1024*1024))
 
             job.output_video_key = output_key
