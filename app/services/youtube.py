@@ -26,9 +26,8 @@ def download_video(url: str, output_dir: str) -> dict:
         "no_warnings": True,
     }
 
-    # Instagram requires authentication — use browser cookies
-    if _is_instagram_url(url):
-        ydl_opts["cookiesfrombrowser"] = ("chrome",)
+    # YouTube and Instagram both require authentication — use browser cookies
+    ydl_opts["cookiesfrombrowser"] = ("chrome",)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
