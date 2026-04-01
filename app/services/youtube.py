@@ -9,7 +9,7 @@ import yt_dlp
 
 log = logging.getLogger(__name__)
 
-MAX_DURATION_SECONDS = 3600  # 60 minutes
+MAX_DURATION_SECONDS = None  # No limit
 
 COBALT_API_URL = os.environ.get("COBALT_API_URL", "https://api.cobalt.tools")
 
@@ -78,10 +78,6 @@ def _try_ytdlp(url: str, output_dir: str) -> dict:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         duration = info.get("duration", 0)
-        if duration > MAX_DURATION_SECONDS:
-            raise ValueError(
-                f"Video too long ({duration:.0f}s, max {MAX_DURATION_SECONDS}s / 60 minutes)"
-            )
         info = ydl.extract_info(url, download=True)
 
         filepath = None
@@ -128,11 +124,7 @@ def _try_cobalt(url: str, output_dir: str) -> dict:
         raise RuntimeError("Cobalt: downloaded file too small or missing")
 
     duration = _probe_duration(filepath)
-    if duration > MAX_DURATION_SECONDS:
-        os.remove(filepath)
-        raise ValueError(
-            f"Video too long ({duration:.0f}s, max {MAX_DURATION_SECONDS}s / 60 minutes)"
-        )
+
 
     return {
         "title": "Unknown",
@@ -157,10 +149,6 @@ def _try_ytdlp_plain(url: str, output_dir: str) -> dict:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         duration = info.get("duration", 0)
-        if duration > MAX_DURATION_SECONDS:
-            raise ValueError(
-                f"Video too long ({duration:.0f}s, max {MAX_DURATION_SECONDS}s / 60 minutes)"
-            )
         info = ydl.extract_info(url, download=True)
 
         filepath = None
@@ -200,7 +188,7 @@ def download_video(url: str, output_dir: str) -> dict:
             log.info(f"Download succeeded with: {name}")
             return result
         except ValueError:
-            raise  # duration limit — don't retry
+            raise
         except Exception as e:
             log.warning(f"{name} failed: {e}")
             errors.append(f"{name}: {e}")
